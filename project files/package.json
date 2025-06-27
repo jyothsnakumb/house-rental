@@ -1,19 +1,19 @@
 {
-    "name": "@types/pump",
-    "version": "1.1.3",
-    "description": "TypeScript definitions for pump",
-    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/pump",
+    "name": "@types/whatwg-url",
+    "version": "8.2.2",
+    "description": "TypeScript definitions for whatwg-url",
+    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/whatwg-url",
     "license": "MIT",
     "contributors": [
         {
-            "name": "Tomek Łaziuk",
-            "githubUsername": "tlaziuk",
-            "url": "https://github.com/tlaziuk"
+            "name": "Alexander Marks",
+            "url": "https://github.com/aomarks",
+            "githubUsername": "aomarks"
         },
         {
-            "name": "Jason Cordial",
-            "githubUsername": "jcordial",
-            "url": "https://github.com/jcordial"
+            "name": "ExE Boss",
+            "url": "https://github.com/ExE-Boss",
+            "githubUsername": "ExE-Boss"
         }
     ],
     "main": "",
@@ -21,12 +21,13 @@
     "repository": {
         "type": "git",
         "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
-        "directory": "types/pump"
+        "directory": "types/whatwg-url"
     },
     "scripts": {},
     "dependencies": {
-        "@types/node": "*"
+        "@types/node": "*",
+        "@types/webidl-conversions": "*"
     },
-    "typesPublisherContentHash": "759fcf355bbe02830be3bf7b2a875ca9f971029fdd3036060b9572abd35036b2",
-    "typeScriptVersion": "4.5"
+    "typesPublisherContentHash": "ea85d67c501583ff421cfbf206fafac0410c464edef169a6d88e06ecfe226dfc",
+    "typeScriptVersion": "4.0"
 }
