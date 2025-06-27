@@ -1,33 +1,39 @@
 {
-    "name": "@types/whatwg-url",
-    "version": "8.2.2",
-    "description": "TypeScript definitions for whatwg-url",
-    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/whatwg-url",
-    "license": "MIT",
-    "contributors": [
-        {
-            "name": "Alexander Marks",
-            "url": "https://github.com/aomarks",
-            "githubUsername": "aomarks"
-        },
-        {
-            "name": "ExE Boss",
-            "url": "https://github.com/ExE-Boss",
-            "githubUsername": "ExE-Boss"
-        }
-    ],
-    "main": "",
-    "types": "index.d.ts",
-    "repository": {
-        "type": "git",
-        "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
-        "directory": "types/whatwg-url"
-    },
-    "scripts": {},
-    "dependencies": {
-        "@types/node": "*",
-        "@types/webidl-conversions": "*"
-    },
-    "typesPublisherContentHash": "ea85d67c501583ff421cfbf206fafac0410c464edef169a6d88e06ecfe226dfc",
-    "typeScriptVersion": "4.0"
+  "name": "array-flatten",
+  "version": "1.1.1",
+  "description": "Flatten an array of nested arrays into a single flat array",
+  "main": "array-flatten.js",
+  "files": [
+    "array-flatten.js",
+    "LICENSE"
+  ],
+  "scripts": {
+    "test": "istanbul cover _mocha -- -R spec"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/blakeembrey/array-flatten.git"
+  },
+  "keywords": [
+    "array",
+    "flatten",
+    "arguments",
+    "depth"
+  ],
+  "author": {
+    "name": "Blake Embrey",
+    "email": "hello@blakeembrey.com",
+    "url": "http://blakeembrey.me"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/blakeembrey/array-flatten/issues"
+  },
+  "homepage": "https://github.com/blakeembrey/array-flatten",
+  "devDependencies": {
+    "istanbul": "^0.3.13",
+    "mocha": "^2.2.4",
+    "pre-commit": "^1.0.7",
+    "standard": "^3.7.3"
+  }
 }

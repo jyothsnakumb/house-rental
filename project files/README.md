@@ -1,16 +1,43 @@
-# Installation
-> `npm install --save @types/whatwg-url`
+# Array Flatten
 
-# Summary
-This package contains type definitions for whatwg-url (https://github.com/jsdom/whatwg-url#readme).
+[![NPM version][npm-image]][npm-url]
+[![NPM downloads][downloads-image]][downloads-url]
+[![Build status][travis-image]][travis-url]
+[![Test coverage][coveralls-image]][coveralls-url]
 
-# Details
-Files were exported from https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/whatwg-url.
+> Flatten an array of nested arrays into a single flat array. Accepts an optional depth.
 
-### Additional Details
- * Last updated: Tue, 21 Jun 2022 16:31:40 GMT
- * Dependencies: [@types/webidl-conversions](https://npmjs.com/package/@types/webidl-conversions), [@types/node](https://npmjs.com/package/@types/node)
- * Global values: none
+## Installation
 
-# Credits
-These definitions were written by [Alexander Marks](https://github.com/aomarks), and [ExE Boss](https://github.com/ExE-Boss).
+```
+npm install array-flatten --save
+```
+
+## Usage
+
+```javascript
+var flatten = require('array-flatten')
+
+flatten([1, [2, [3, [4, [5], 6], 7], 8], 9])
+//=> [1, 2, 3, 4, 5, 6, 7, 8, 9]
+
+flatten([1, [2, [3, [4, [5], 6], 7], 8], 9], 2)
+//=> [1, 2, 3, [4, [5], 6], 7, 8, 9]
+
+(function () {
+  flatten(arguments) //=> [1, 2, 3]
+})(1, [2, 3])
+```
+
+## License
+
+MIT
+
+[npm-image]: https://img.shields.io/npm/v/array-flatten.svg?style=flat
+[npm-url]: https://npmjs.org/package/array-flatten
+[downloads-image]: https://img.shields.io/npm/dm/array-flatten.svg?style=flat
+[downloads-url]: https://npmjs.org/package/array-flatten
+[travis-image]: https://img.shields.io/travis/blakeembrey/array-flatten.svg?style=flat
+[travis-url]: https://travis-ci.org/blakeembrey/array-flatten
+[coveralls-image]: https://img.shields.io/coveralls/blakeembrey/array-flatten.svg?style=flat
+[coveralls-url]: https://coveralls.io/r/blakeembrey/array-flatten?branch=master
