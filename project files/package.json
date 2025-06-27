@@ -1,39 +1,19 @@
 {
-    "name": "@types/express-serve-static-core",
-    "version": "4.17.41",
-    "description": "TypeScript definitions for express-serve-static-core",
-    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/express-serve-static-core",
+    "name": "@types/http-errors",
+    "version": "2.0.4",
+    "description": "TypeScript definitions for http-errors",
+    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/http-errors",
     "license": "MIT",
     "contributors": [
         {
-            "name": "Boris Yankov",
-            "githubUsername": "borisyankov",
-            "url": "https://github.com/borisyankov"
+            "name": "Tanguy Krotoff",
+            "githubUsername": "tkrotoff",
+            "url": "https://github.com/tkrotoff"
         },
         {
-            "name": "Satana Charuwichitratana",
-            "githubUsername": "micksatana",
-            "url": "https://github.com/micksatana"
-        },
-        {
-            "name": "Sami Jaber",
-            "githubUsername": "samijaber",
-            "url": "https://github.com/samijaber"
-        },
-        {
-            "name": "Jose Luis Leon",
-            "githubUsername": "JoseLion",
-            "url": "https://github.com/JoseLion"
-        },
-        {
-            "name": "David Stephens",
-            "githubUsername": "dwrss",
-            "url": "https://github.com/dwrss"
-        },
-        {
-            "name": "Shin Ando",
-            "githubUsername": "andoshin11",
-            "url": "https://github.com/andoshin11"
+            "name": "BendingBender",
+            "githubUsername": "BendingBender",
+            "url": "https://github.com/BendingBender"
         }
     ],
     "main": "",
@@ -41,15 +21,10 @@
     "repository": {
         "type": "git",
         "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
-        "directory": "types/express-serve-static-core"
+        "directory": "types/http-errors"
     },
     "scripts": {},
-    "dependencies": {
-        "@types/node": "*",
-        "@types/qs": "*",
-        "@types/range-parser": "*",
-        "@types/send": "*"
-    },
-    "typesPublisherContentHash": "5c546c267bbf60fff3ec26d28c47a1c607526f56c28ea2a149efcb2f1a8e0198",
+    "dependencies": {},
+    "typesPublisherContentHash": "06e33723b60f818facd3b7dd2025f043142fb7c56ab4832babafeb9470f2086f",
     "typeScriptVersion": "4.5"
 }
