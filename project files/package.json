@@ -1,19 +1,19 @@
 {
-    "name": "@types/http-errors",
-    "version": "2.0.4",
-    "description": "TypeScript definitions for http-errors",
-    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/http-errors",
+    "name": "@types/mime",
+    "version": "1.3.5",
+    "description": "TypeScript definitions for mime",
+    "homepage": "https://github.com/DefinitelyTyped/DefinitelyTyped/tree/master/types/mime",
     "license": "MIT",
     "contributors": [
         {
-            "name": "Tanguy Krotoff",
-            "githubUsername": "tkrotoff",
-            "url": "https://github.com/tkrotoff"
+            "name": "Jeff Goddard",
+            "githubUsername": "jedigo",
+            "url": "https://github.com/jedigo"
         },
         {
-            "name": "BendingBender",
-            "githubUsername": "BendingBender",
-            "url": "https://github.com/BendingBender"
+            "name": "Daniel Hritzkiv",
+            "githubUsername": "dhritzkiv",
+            "url": "https://github.com/dhritzkiv"
         }
     ],
     "main": "",
@@ -21,10 +21,10 @@
     "repository": {
         "type": "git",
         "url": "https://github.com/DefinitelyTyped/DefinitelyTyped.git",
-        "directory": "types/http-errors"
+        "directory": "types/mime"
     },
     "scripts": {},
     "dependencies": {},
-    "typesPublisherContentHash": "06e33723b60f818facd3b7dd2025f043142fb7c56ab4832babafeb9470f2086f",
+    "typesPublisherContentHash": "2ad7ee9a549e6721825e733c6a1a7e8bee0ca7ba93d9ab922c8f4558def52d77",
     "typeScriptVersion": "4.5"
 }
