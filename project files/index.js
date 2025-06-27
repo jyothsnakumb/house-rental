@@ -1,156 +1,72 @@
-/*!
- * body-parser
- * Copyright(c) 2014-2015 Douglas Christopher Wilson
- * MIT Licensed
- */
+/* eslint-disable node/no-deprecated-api */
 
-'use strict'
+var toString = Object.prototype.toString
 
-/**
- * Module dependencies.
- * @private
- */
+var isModern = (
+  typeof Buffer !== 'undefined' &&
+  typeof Buffer.alloc === 'function' &&
+  typeof Buffer.allocUnsafe === 'function' &&
+  typeof Buffer.from === 'function'
+)
 
-var deprecate = require('depd')('body-parser')
+function isArrayBuffer (input) {
+  return toString.call(input).slice(8, -1) === 'ArrayBuffer'
+}
 
-/**
- * Cache of loaded parsers.
- * @private
- */
+function fromArrayBuffer (obj, byteOffset, length) {
+  byteOffset >>>= 0
 
-var parsers = Object.create(null)
+  var maxLength = obj.byteLength - byteOffset
 
-/**
- * @typedef Parsers
- * @type {function}
- * @property {function} json
- * @property {function} raw
- * @property {function} text
- * @property {function} urlencoded
- */
+  if (maxLength < 0) {
+    throw new RangeError("'offset' is out of bounds")
+  }
 
-/**
- * Module exports.
- * @type {Parsers}
- */
+  if (length === undefined) {
+    length = maxLength
+  } else {
+    length >>>= 0
 
-exports = module.exports = deprecate.function(bodyParser,
-  'bodyParser: use individual json/urlencoded middlewares')
-
-/**
- * JSON parser.
- * @public
- */
-
-Object.defineProperty(exports, 'json', {
-  configurable: true,
-  enumerable: true,
-  get: createParserGetter('json')
-})
-
-/**
- * Raw parser.
- * @public
- */
-
-Object.defineProperty(exports, 'raw', {
-  configurable: true,
-  enumerable: true,
-  get: createParserGetter('raw')
-})
-
-/**
- * Text parser.
- * @public
- */
-
-Object.defineProperty(exports, 'text', {
-  configurable: true,
-  enumerable: true,
-  get: createParserGetter('text')
-})
-
-/**
- * URL-encoded parser.
- * @public
- */
-
-Object.defineProperty(exports, 'urlencoded', {
-  configurable: true,
-  enumerable: true,
-  get: createParserGetter('urlencoded')
-})
-
-/**
- * Create a middleware to parse json and urlencoded bodies.
- *
- * @param {object} [options]
- * @return {function}
- * @deprecated
- * @public
- */
-
-function bodyParser (options) {
-  // use default type for parsers
-  var opts = Object.create(options || null, {
-    type: {
-      configurable: true,
-      enumerable: true,
-      value: undefined,
-      writable: true
+    if (length > maxLength) {
+      throw new RangeError("'length' is out of bounds")
     }
-  })
-
-  var _urlencoded = exports.urlencoded(opts)
-  var _json = exports.json(opts)
-
-  return function bodyParser (req, res, next) {
-    _json(req, res, function (err) {
-      if (err) return next(err)
-      _urlencoded(req, res, next)
-    })
   }
+
+  return isModern
+    ? Buffer.from(obj.slice(byteOffset, byteOffset + length))
+    : new Buffer(new Uint8Array(obj.slice(byteOffset, byteOffset + length)))
 }
 
-/**
- * Create a getter for loading a parser.
- * @private
- */
-
-function createParserGetter (name) {
-  return function get () {
-    return loadParser(name)
+function fromString (string, encoding) {
+  if (typeof encoding !== 'string' || encoding === '') {
+    encoding = 'utf8'
   }
+
+  if (!Buffer.isEncoding(encoding)) {
+    throw new TypeError('"encoding" must be a valid string encoding')
+  }
+
+  return isModern
+    ? Buffer.from(string, encoding)
+    : new Buffer(string, encoding)
 }
 
-/**
- * Load a parser module.
- * @private
- */
-
-function loadParser (parserName) {
-  var parser = parsers[parserName]
-
-  if (parser !== undefined) {
-    return parser
+function bufferFrom (value, encodingOrOffset, length) {
+  if (typeof value === 'number') {
+    throw new TypeError('"value" argument must not be a number')
   }
 
-  // this uses a switch for static require analysis
-  switch (parserName) {
-    case 'json':
-      parser = require('./lib/types/json')
-      break
-    case 'raw':
-      parser = require('./lib/types/raw')
-      break
-    case 'text':
-      parser = require('./lib/types/text')
-      break
-    case 'urlencoded':
-      parser = require('./lib/types/urlencoded')
-      break
+  if (isArrayBuffer(value)) {
+    return fromArrayBuffer(value, encodingOrOffset, length)
   }
 
-  // store to prevent invoking require()
-  return (parsers[parserName] = parser)
+  if (typeof value === 'string') {
+    return fromString(value, encodingOrOffset)
+  }
+
+  return isModern
+    ? Buffer.from(value)
+    : new Buffer(value)
 }
+
+module.exports = bufferFrom

@@ -1,465 +1,225 @@
-# body-parser
+Description
+===========
 
-[![NPM Version][npm-version-image]][npm-url]
-[![NPM Downloads][npm-downloads-image]][npm-url]
-[![Build Status][ci-image]][ci-url]
-[![Test Coverage][coveralls-image]][coveralls-url]
+A node.js module for parsing incoming HTML form data.
 
-Node.js body parsing middleware.
+If you've found this module to be useful and wish to support it, you may do so by visiting this pledgie campaign:
+<a href='https://pledgie.com/campaigns/28774'><img alt='Click here to support busboy' src='https://pledgie.com/campaigns/28774.png?skin_name=chrome' border='0'></a>
 
-Parse incoming request bodies in a middleware before your handlers, available
-under the `req.body` property.
 
-**Note** As `req.body`'s shape is based on user-controlled input, all
-properties and values in this object are untrusted and should be validated
-before trusting. For example, `req.body.foo.toString()` may fail in multiple
-ways, for example the `foo` property may not be there or may not be a string,
-and `toString` may not be a function and instead a string or other user input.
+Requirements
+============
 
-[Learn about the anatomy of an HTTP transaction in Node.js](https://nodejs.org/en/docs/guides/anatomy-of-an-http-transaction/).
+* [node.js](http://nodejs.org/) -- v0.8.0 or newer
 
-_This does not handle multipart bodies_, due to their complex and typically
-large nature. For multipart bodies, you may be interested in the following
-modules:
 
-  * [busboy](https://www.npmjs.org/package/busboy#readme) and
-    [connect-busboy](https://www.npmjs.org/package/connect-busboy#readme)
-  * [multiparty](https://www.npmjs.org/package/multiparty#readme) and
-    [connect-multiparty](https://www.npmjs.org/package/connect-multiparty#readme)
-  * [formidable](https://www.npmjs.org/package/formidable#readme)
-  * [multer](https://www.npmjs.org/package/multer#readme)
+Install
+=======
 
-This module provides the following parsers:
+    npm install busboy
 
-  * [JSON body parser](#bodyparserjsonoptions)
-  * [Raw body parser](#bodyparserrawoptions)
-  * [Text body parser](#bodyparsertextoptions)
-  * [URL-encoded form body parser](#bodyparserurlencodedoptions)
 
-Other body parsers you might be interested in:
+Examples
+========
 
-- [body](https://www.npmjs.org/package/body#readme)
-- [co-body](https://www.npmjs.org/package/co-body#readme)
+* Parsing (multipart) with default options:
 
-## Installation
+```javascript
+var http = require('http'),
+    inspect = require('util').inspect;
 
-```sh
-$ npm install body-parser
+var Busboy = require('busboy');
+
+http.createServer(function(req, res) {
+  if (req.method === 'POST') {
+    var busboy = new Busboy({ headers: req.headers });
+    busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
+      console.log('File [' + fieldname + ']: filename: ' + filename + ', encoding: ' + encoding + ', mimetype: ' + mimetype);
+      file.on('data', function(data) {
+        console.log('File [' + fieldname + '] got ' + data.length + ' bytes');
+      });
+      file.on('end', function() {
+        console.log('File [' + fieldname + '] Finished');
+      });
+    });
+    busboy.on('field', function(fieldname, val, fieldnameTruncated, valTruncated, encoding, mimetype) {
+      console.log('Field [' + fieldname + ']: value: ' + inspect(val));
+    });
+    busboy.on('finish', function() {
+      console.log('Done parsing form!');
+      res.writeHead(303, { Connection: 'close', Location: '/' });
+      res.end();
+    });
+    req.pipe(busboy);
+  } else if (req.method === 'GET') {
+    res.writeHead(200, { Connection: 'close' });
+    res.end('<html><head></head><body>\
+               <form method="POST" enctype="multipart/form-data">\
+                <input type="text" name="textfield"><br />\
+                <input type="file" name="filefield"><br />\
+                <input type="submit">\
+              </form>\
+            </body></html>');
+  }
+}).listen(8000, function() {
+  console.log('Listening for requests');
+});
+
+// Example output, using http://nodejs.org/images/ryan-speaker.jpg as the file:
+//
+// Listening for requests
+// File [filefield]: filename: ryan-speaker.jpg, encoding: binary
+// File [filefield] got 11971 bytes
+// Field [textfield]: value: 'testing! :-)'
+// File [filefield] Finished
+// Done parsing form!
 ```
 
-## API
+* Save all incoming files to disk:
 
-```js
-var bodyParser = require('body-parser')
+```javascript
+var http = require('http'),
+    path = require('path'),
+    os = require('os'),
+    fs = require('fs');
+
+var Busboy = require('busboy');
+
+http.createServer(function(req, res) {
+  if (req.method === 'POST') {
+    var busboy = new Busboy({ headers: req.headers });
+    busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
+      var saveTo = path.join(os.tmpDir(), path.basename(fieldname));
+      file.pipe(fs.createWriteStream(saveTo));
+    });
+    busboy.on('finish', function() {
+      res.writeHead(200, { 'Connection': 'close' });
+      res.end("That's all folks!");
+    });
+    return req.pipe(busboy);
+  }
+  res.writeHead(404);
+  res.end();
+}).listen(8000, function() {
+  console.log('Listening for requests');
+});
 ```
 
-The `bodyParser` object exposes various factories to create middlewares. All
-middlewares will populate the `req.body` property with the parsed body when
-the `Content-Type` request header matches the `type` option, or an empty
-object (`{}`) if there was no body to parse, the `Content-Type` was not matched,
-or an error occurred.
-
-The various errors returned by this module are described in the
-[errors section](#errors).
-
-### bodyParser.json([options])
-
-Returns middleware that only parses `json` and only looks at requests where
-the `Content-Type` header matches the `type` option. This parser accepts any
-Unicode encoding of the body and supports automatic inflation of `gzip` and
-`deflate` encodings.
-
-A new `body` object containing the parsed data is populated on the `request`
-object after the middleware (i.e. `req.body`).
-
-#### Options
-
-The `json` function takes an optional `options` object that may contain any of
-the following keys:
-
-##### inflate
-
-When set to `true`, then deflated (compressed) bodies will be inflated; when
-`false`, deflated bodies are rejected. Defaults to `true`.
-
-##### limit
-
-Controls the maximum request body size. If this is a number, then the value
-specifies the number of bytes; if it is a string, the value is passed to the
-[bytes](https://www.npmjs.com/package/bytes) library for parsing. Defaults
-to `'100kb'`.
-
-##### reviver
-
-The `reviver` option is passed directly to `JSON.parse` as the second
-argument. You can find more information on this argument
-[in the MDN documentation about JSON.parse](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON/parse#Example.3A_Using_the_reviver_parameter).
-
-##### strict
-
-When set to `true`, will only accept arrays and objects; when `false` will
-accept anything `JSON.parse` accepts. Defaults to `true`.
-
-##### type
-
-The `type` option is used to determine what media type the middleware will
-parse. This option can be a string, array of strings, or a function. If not a
-function, `type` option is passed directly to the
-[type-is](https://www.npmjs.org/package/type-is#readme) library and this can
-be an extension name (like `json`), a mime type (like `application/json`), or
-a mime type with a wildcard (like `*/*` or `*/json`). If a function, the `type`
-option is called as `fn(req)` and the request is parsed if it returns a truthy
-value. Defaults to `application/json`.
-
-##### verify
-
-The `verify` option, if supplied, is called as `verify(req, res, buf, encoding)`,
-where `buf` is a `Buffer` of the raw request body and `encoding` is the
-encoding of the request. The parsing can be aborted by throwing an error.
-
-### bodyParser.raw([options])
-
-Returns middleware that parses all bodies as a `Buffer` and only looks at
-requests where the `Content-Type` header matches the `type` option. This
-parser supports automatic inflation of `gzip` and `deflate` encodings.
-
-A new `body` object containing the parsed data is populated on the `request`
-object after the middleware (i.e. `req.body`). This will be a `Buffer` object
-of the body.
-
-#### Options
-
-The `raw` function takes an optional `options` object that may contain any of
-the following keys:
-
-##### inflate
-
-When set to `true`, then deflated (compressed) bodies will be inflated; when
-`false`, deflated bodies are rejected. Defaults to `true`.
-
-##### limit
-
-Controls the maximum request body size. If this is a number, then the value
-specifies the number of bytes; if it is a string, the value is passed to the
-[bytes](https://www.npmjs.com/package/bytes) library for parsing. Defaults
-to `'100kb'`.
-
-##### type
-
-The `type` option is used to determine what media type the middleware will
-parse. This option can be a string, array of strings, or a function.
-If not a function, `type` option is passed directly to the
-[type-is](https://www.npmjs.org/package/type-is#readme) library and this
-can be an extension name (like `bin`), a mime type (like
-`application/octet-stream`), or a mime type with a wildcard (like `*/*` or
-`application/*`). If a function, the `type` option is called as `fn(req)`
-and the request is parsed if it returns a truthy value. Defaults to
-`application/octet-stream`.
-
-##### verify
-
-The `verify` option, if supplied, is called as `verify(req, res, buf, encoding)`,
-where `buf` is a `Buffer` of the raw request body and `encoding` is the
-encoding of the request. The parsing can be aborted by throwing an error.
-
-### bodyParser.text([options])
-
-Returns middleware that parses all bodies as a string and only looks at
-requests where the `Content-Type` header matches the `type` option. This
-parser supports automatic inflation of `gzip` and `deflate` encodings.
-
-A new `body` string containing the parsed data is populated on the `request`
-object after the middleware (i.e. `req.body`). This will be a string of the
-body.
-
-#### Options
-
-The `text` function takes an optional `options` object that may contain any of
-the following keys:
-
-##### defaultCharset
-
-Specify the default character set for the text content if the charset is not
-specified in the `Content-Type` header of the request. Defaults to `utf-8`.
-
-##### inflate
-
-When set to `true`, then deflated (compressed) bodies will be inflated; when
-`false`, deflated bodies are rejected. Defaults to `true`.
-
-##### limit
-
-Controls the maximum request body size. If this is a number, then the value
-specifies the number of bytes; if it is a string, the value is passed to the
-[bytes](https://www.npmjs.com/package/bytes) library for parsing. Defaults
-to `'100kb'`.
-
-##### type
-
-The `type` option is used to determine what media type the middleware will
-parse. This option can be a string, array of strings, or a function. If not
-a function, `type` option is passed directly to the
-[type-is](https://www.npmjs.org/package/type-is#readme) library and this can
-be an extension name (like `txt`), a mime type (like `text/plain`), or a mime
-type with a wildcard (like `*/*` or `text/*`). If a function, the `type`
-option is called as `fn(req)` and the request is parsed if it returns a
-truthy value. Defaults to `text/plain`.
-
-##### verify
-
-The `verify` option, if supplied, is called as `verify(req, res, buf, encoding)`,
-where `buf` is a `Buffer` of the raw request body and `encoding` is the
-encoding of the request. The parsing can be aborted by throwing an error.
-
-### bodyParser.urlencoded([options])
-
-Returns middleware that only parses `urlencoded` bodies and only looks at
-requests where the `Content-Type` header matches the `type` option. This
-parser accepts only UTF-8 encoding of the body and supports automatic
-inflation of `gzip` and `deflate` encodings.
-
-A new `body` object containing the parsed data is populated on the `request`
-object after the middleware (i.e. `req.body`). This object will contain
-key-value pairs, where the value can be a string or array (when `extended` is
-`false`), or any type (when `extended` is `true`).
-
-#### Options
-
-The `urlencoded` function takes an optional `options` object that may contain
-any of the following keys:
-
-##### extended
-
-The `extended` option allows to choose between parsing the URL-encoded data
-with the `querystring` library (when `false`) or the `qs` library (when
-`true`). The "extended" syntax allows for rich objects and arrays to be
-encoded into the URL-encoded format, allowing for a JSON-like experience
-with URL-encoded. For more information, please
-[see the qs library](https://www.npmjs.org/package/qs#readme).
-
-Defaults to `true`, but using the default has been deprecated. Please
-research into the difference between `qs` and `querystring` and choose the
-appropriate setting.
-
-##### inflate
-
-When set to `true`, then deflated (compressed) bodies will be inflated; when
-`false`, deflated bodies are rejected. Defaults to `true`.
-
-##### limit
-
-Controls the maximum request body size. If this is a number, then the value
-specifies the number of bytes; if it is a string, the value is passed to the
-[bytes](https://www.npmjs.com/package/bytes) library for parsing. Defaults
-to `'100kb'`.
-
-##### parameterLimit
-
-The `parameterLimit` option controls the maximum number of parameters that
-are allowed in the URL-encoded data. If a request contains more parameters
-than this value, a 413 will be returned to the client. Defaults to `1000`.
-
-##### type
-
-The `type` option is used to determine what media type the middleware will
-parse. This option can be a string, array of strings, or a function. If not
-a function, `type` option is passed directly to the
-[type-is](https://www.npmjs.org/package/type-is#readme) library and this can
-be an extension name (like `urlencoded`), a mime type (like
-`application/x-www-form-urlencoded`), or a mime type with a wildcard (like
-`*/x-www-form-urlencoded`). If a function, the `type` option is called as
-`fn(req)` and the request is parsed if it returns a truthy value. Defaults
-to `application/x-www-form-urlencoded`.
-
-##### verify
-
-The `verify` option, if supplied, is called as `verify(req, res, buf, encoding)`,
-where `buf` is a `Buffer` of the raw request body and `encoding` is the
-encoding of the request. The parsing can be aborted by throwing an error.
-
-## Errors
-
-The middlewares provided by this module create errors using the
-[`http-errors` module](https://www.npmjs.com/package/http-errors). The errors
-will typically have a `status`/`statusCode` property that contains the suggested
-HTTP response code, an `expose` property to determine if the `message` property
-should be displayed to the client, a `type` property to determine the type of
-error without matching against the `message`, and a `body` property containing
-the read body, if available.
-
-The following are the common errors created, though any error can come through
-for various reasons.
-
-### content encoding unsupported
-
-This error will occur when the request had a `Content-Encoding` header that
-contained an encoding but the "inflation" option was set to `false`. The
-`status` property is set to `415`, the `type` property is set to
-`'encoding.unsupported'`, and the `charset` property will be set to the
-encoding that is unsupported.
-
-### entity parse failed
-
-This error will occur when the request contained an entity that could not be
-parsed by the middleware. The `status` property is set to `400`, the `type`
-property is set to `'entity.parse.failed'`, and the `body` property is set to
-the entity value that failed parsing.
-
-### entity verify failed
-
-This error will occur when the request contained an entity that could not be
-failed verification by the defined `verify` option. The `status` property is
-set to `403`, the `type` property is set to `'entity.verify.failed'`, and the
-`body` property is set to the entity value that failed verification.
-
-### request aborted
-
-This error will occur when the request is aborted by the client before reading
-the body has finished. The `received` property will be set to the number of
-bytes received before the request was aborted and the `expected` property is
-set to the number of expected bytes. The `status` property is set to `400`
-and `type` property is set to `'request.aborted'`.
-
-### request entity too large
-
-This error will occur when the request body's size is larger than the "limit"
-option. The `limit` property will be set to the byte limit and the `length`
-property will be set to the request body's length. The `status` property is
-set to `413` and the `type` property is set to `'entity.too.large'`.
-
-### request size did not match content length
-
-This error will occur when the request's length did not match the length from
-the `Content-Length` header. This typically occurs when the request is malformed,
-typically when the `Content-Length` header was calculated based on characters
-instead of bytes. The `status` property is set to `400` and the `type` property
-is set to `'request.size.invalid'`.
-
-### stream encoding should not be set
-
-This error will occur when something called the `req.setEncoding` method prior
-to this middleware. This module operates directly on bytes only and you cannot
-call `req.setEncoding` when using this module. The `status` property is set to
-`500` and the `type` property is set to `'stream.encoding.set'`.
-
-### stream is not readable
-
-This error will occur when the request is no longer readable when this middleware
-attempts to read it. This typically means something other than a middleware from
-this module read the request body already and the middleware was also configured to
-read the same request. The `status` property is set to `500` and the `type`
-property is set to `'stream.not.readable'`.
-
-### too many parameters
-
-This error will occur when the content of the request exceeds the configured
-`parameterLimit` for the `urlencoded` parser. The `status` property is set to
-`413` and the `type` property is set to `'parameters.too.many'`.
-
-### unsupported charset "BOGUS"
-
-This error will occur when the request had a charset parameter in the
-`Content-Type` header, but the `iconv-lite` module does not support it OR the
-parser does not support it. The charset is contained in the message as well
-as in the `charset` property. The `status` property is set to `415`, the
-`type` property is set to `'charset.unsupported'`, and the `charset` property
-is set to the charset that is unsupported.
-
-### unsupported content encoding "bogus"
-
-This error will occur when the request had a `Content-Encoding` header that
-contained an unsupported encoding. The encoding is contained in the message
-as well as in the `encoding` property. The `status` property is set to `415`,
-the `type` property is set to `'encoding.unsupported'`, and the `encoding`
-property is set to the encoding that is unsupported.
-
-## Examples
-
-### Express/Connect top-level generic
-
-This example demonstrates adding a generic JSON and URL-encoded parser as a
-top-level middleware, which will parse the bodies of all incoming requests.
-This is the simplest setup.
-
-```js
-var express = require('express')
-var bodyParser = require('body-parser')
-
-var app = express()
-
-// parse application/x-www-form-urlencoded
-app.use(bodyParser.urlencoded({ extended: false }))
-
-// parse application/json
-app.use(bodyParser.json())
-
-app.use(function (req, res) {
-  res.setHeader('Content-Type', 'text/plain')
-  res.write('you posted:\n')
-  res.end(JSON.stringify(req.body, null, 2))
-})
+* Parsing (urlencoded) with default options:
+
+```javascript
+var http = require('http'),
+    inspect = require('util').inspect;
+
+var Busboy = require('busboy');
+
+http.createServer(function(req, res) {
+  if (req.method === 'POST') {
+    var busboy = new Busboy({ headers: req.headers });
+    busboy.on('file', function(fieldname, file, filename, encoding, mimetype) {
+      console.log('File [' + fieldname + ']: filename: ' + filename);
+      file.on('data', function(data) {
+        console.log('File [' + fieldname + '] got ' + data.length + ' bytes');
+      });
+      file.on('end', function() {
+        console.log('File [' + fieldname + '] Finished');
+      });
+    });
+    busboy.on('field', function(fieldname, val, fieldnameTruncated, valTruncated) {
+      console.log('Field [' + fieldname + ']: value: ' + inspect(val));
+    });
+    busboy.on('finish', function() {
+      console.log('Done parsing form!');
+      res.writeHead(303, { Connection: 'close', Location: '/' });
+      res.end();
+    });
+    req.pipe(busboy);
+  } else if (req.method === 'GET') {
+    res.writeHead(200, { Connection: 'close' });
+    res.end('<html><head></head><body>\
+               <form method="POST">\
+                <input type="text" name="textfield"><br />\
+                <select name="selectfield">\
+                  <option value="1">1</option>\
+                  <option value="10">10</option>\
+                  <option value="100">100</option>\
+                  <option value="9001">9001</option>\
+                </select><br />\
+                <input type="checkbox" name="checkfield">Node.js rules!<br />\
+                <input type="submit">\
+              </form>\
+            </body></html>');
+  }
+}).listen(8000, function() {
+  console.log('Listening for requests');
+});
+
+// Example output:
+//
+// Listening for requests
+// Field [textfield]: value: 'testing! :-)'
+// Field [selectfield]: value: '9001'
+// Field [checkfield]: value: 'on'
+// Done parsing form!
 ```
 
-### Express route-specific
 
-This example demonstrates adding body parsers specifically to the routes that
-need them. In general, this is the most recommended way to use body-parser with
-Express.
+API
+===
 
-```js
-var express = require('express')
-var bodyParser = require('body-parser')
+_Busboy_ is a _Writable_ stream
 
-var app = express()
+Busboy (special) events
+-----------------------
 
-// create application/json parser
-var jsonParser = bodyParser.json()
+* **file**(< _string_ >fieldname, < _ReadableStream_ >stream, < _string_ >filename, < _string_ >transferEncoding, < _string_ >mimeType) - Emitted for each new file form field found. `transferEncoding` contains the 'Content-Transfer-Encoding' value for the file stream. `mimeType` contains the 'Content-Type' value for the file stream.
+    * Note: if you listen for this event, you should always handle the `stream` no matter if you care about the file contents or not (e.g. you can simply just do `stream.resume();` if you want to discard the contents), otherwise the 'finish' event will never fire on the Busboy instance. However, if you don't care about **any** incoming files, you can simply not listen for the 'file' event at all and any/all files will be automatically and safely discarded (these discarded files do still count towards `files` and `parts` limits).
+    * If a configured file size limit was reached, `stream` will both have a boolean property `truncated` (best checked at the end of the stream) and emit a 'limit' event to notify you when this happens.
 
-// create application/x-www-form-urlencoded parser
-var urlencodedParser = bodyParser.urlencoded({ extended: false })
+* **field**(< _string_ >fieldname, < _string_ >value, < _boolean_ >fieldnameTruncated, < _boolean_ >valueTruncated, < _string_ >transferEncoding, < _string_ >mimeType) - Emitted for each new non-file field found.
 
-// POST /login gets urlencoded bodies
-app.post('/login', urlencodedParser, function (req, res) {
-  res.send('welcome, ' + req.body.username)
-})
+* **partsLimit**() - Emitted when specified `parts` limit has been reached. No more 'file' or 'field' events will be emitted.
 
-// POST /api/users gets JSON bodies
-app.post('/api/users', jsonParser, function (req, res) {
-  // create user in req.body
-})
-```
+* **filesLimit**() - Emitted when specified `files` limit has been reached. No more 'file' events will be emitted.
 
-### Change accepted type for parsers
+* **fieldsLimit**() - Emitted when specified `fields` limit has been reached. No more 'field' events will be emitted.
 
-All the parsers accept a `type` option which allows you to change the
-`Content-Type` that the middleware will parse.
 
-```js
-var express = require('express')
-var bodyParser = require('body-parser')
+Busboy methods
+--------------
 
-var app = express()
+* **(constructor)**(< _object_ >config) - Creates and returns a new Busboy instance.
 
-// parse various different custom JSON types as JSON
-app.use(bodyParser.json({ type: 'application/*+json' }))
+    * The constructor takes the following valid `config` settings:
 
-// parse some custom thing into a Buffer
-app.use(bodyParser.raw({ type: 'application/vnd.custom-type' }))
+        * **headers** - _object_ - These are the HTTP headers of the incoming request, which are used by individual parsers.
 
-// parse an HTML body into a string
-app.use(bodyParser.text({ type: 'text/html' }))
-```
+        * **highWaterMark** - _integer_ - highWaterMark to use for this Busboy instance (Default: WritableStream default).
 
-## License
+        * **fileHwm** - _integer_ - highWaterMark to use for file streams (Default: ReadableStream default).
 
-[MIT](LICENSE)
+        * **defCharset** - _string_ - Default character set to use when one isn't defined (Default: 'utf8').
 
-[ci-image]: https://badgen.net/github/checks/expressjs/body-parser/master?label=ci
-[ci-url]: https://github.com/expressjs/body-parser/actions/workflows/ci.yml
-[coveralls-image]: https://badgen.net/coveralls/c/github/expressjs/body-parser/master
-[coveralls-url]: https://coveralls.io/r/expressjs/body-parser?branch=master
-[node-version-image]: https://badgen.net/npm/node/body-parser
-[node-version-url]: https://nodejs.org/en/download
-[npm-downloads-image]: https://badgen.net/npm/dm/body-parser
-[npm-url]: https://npmjs.org/package/body-parser
-[npm-version-image]: https://badgen.net/npm/v/body-parser
+        * **preservePath** - _boolean_ - If paths in the multipart 'filename' field shall be preserved. (Default: false).
+
+        * **limits** - _object_ - Various limits on incoming data. Valid properties are:
+
+            * **fieldNameSize** - _integer_ - Max field name size (in bytes) (Default: 100 bytes).
+
+            * **fieldSize** - _integer_ - Max field value size (in bytes) (Default: 1MB).
+
+            * **fields** - _integer_ - Max number of non-file fields (Default: Infinity).
+
+            * **fileSize** - _integer_ - For multipart forms, the max file size (in bytes) (Default: Infinity).
+
+            * **files** - _integer_ - For multipart forms, the max number of file fields (Default: Infinity).
+
+            * **parts** - _integer_ - For multipart forms, the max number of parts (fields + files) (Default: Infinity).
+
+            * **headerPairs** - _integer_ - For multipart forms, the max number of header key=>value pairs to parse **Default:** 2000 (same as node's http).
+
+    * The constructor can throw errors:
+
+        * **Unsupported content type: $type** - The `Content-Type` isn't one Busboy can parse.
+
+        * **Missing Content-Type** - The provided headers don't include `Content-Type` at all.
